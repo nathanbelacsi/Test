@@ -1,0 +1,180 @@
+--[[
+    Script: VenomCt Hub GUI - Custom Draggable
+    Description: Integrates the user's draggable script logic for a better user experience.
+    The GUI is now draggable only from its top bar.
+]]
+
+-- SERVICES AND VARIABLES
+local UserInputService = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "VenomCtHubGui"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-------------------
+-- GUI CREATION
+-------------------
+
+-- Main container frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Parent = screenGui
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.Size = UDim2.new(0, 600, 0, 350)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+
+-- The gradient that creates the border effect.
+-- NOTE: This requires your in-game Graphics Quality to be set high enough.
+local uiGradient = Instance.new("UIGradient")
+uiGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(138, 43, 226)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(65, 105, 225)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(138, 43, 226))
+})
+uiGradient.Rotation = 90
+uiGradient.Parent = mainFrame
+
+-- An inner frame to create the black background inside the border
+local innerFrame = Instance.new("Frame")
+innerFrame.Name = "InnerFrame"
+innerFrame.Parent = mainFrame
+innerFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+innerFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+innerFrame.Size = UDim2.new(1, -4, 1, -4)
+innerFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+innerFrame.BorderSizePixel = 0
+
+-- A specific, transparent bar at the top to be used for dragging
+local dragBar = Instance.new("Frame")
+dragBar.Name = "DragBar"
+dragBar.Parent = innerFrame
+dragBar.Size = UDim2.new(1, 0, 0.15, 0) -- Covers the top area
+dragBar.Position = UDim2.new(0, 0, 0, 0)
+dragBar.BackgroundTransparency = 1 -- Make it invisible
+
+-- Title Text
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Parent = innerFrame
+-- (Rest of titleLabel properties...)
+titleLabel.Position = UDim2.new(0.03, 0, 0.04, 0)
+titleLabel.Size = UDim2.new(0.3, 0, 0.1, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.Text = "VENOMCT HUB"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 22
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+
+-- Welcome Text
+local welcomeLabel = Instance.new("TextLabel")
+welcomeLabel.Parent = innerFrame
+-- (Rest of welcomeLabel properties...)
+welcomeLabel.Position = UDim2.new(0.35, 0, 0.04, 0)
+welcomeLabel.Size = UDim2.new(0.4, 0, 0.1, 0)
+welcomeLabel.BackgroundTransparency = 1
+welcomeLabel.Font = Enum.Font.SourceSans
+welcomeLabel.Text = "Hello! (" .. player.Name .. ")."
+welcomeLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+welcomeLabel.TextSize = 18
+welcomeLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Parent = innerFrame
+-- (Rest of closeButton properties...)
+closeButton.Position = UDim2.new(0.9, 0, 0.03, 0)
+closeButton.Size = UDim2.new(0.08, 0, 0.1, 0)
+closeButton.BackgroundTransparency = 1
+closeButton.Font = Enum.Font.SourceSansBold
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 30
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+
+-- Content Area Frame
+local contentFrame = Instance.new("Frame")
+contentFrame.Parent = innerFrame
+-- (Rest of contentFrame properties...)
+contentFrame.Position = UDim2.new(0.2, 0, 0.2, 0)
+contentFrame.Size = UDim2.new(0.75, 0, 0.75, 0)
+contentFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+contentFrame.BorderColor3 = Color3.fromRGB(0, 0, 255)
+contentFrame.BorderSizePixel = 2
+
+
+-- Button Container and Layout
+local buttonContainer = Instance.new("Frame")
+buttonContainer.Parent = innerFrame
+-- (Rest of buttonContainer properties...)
+buttonContainer.Position = UDim2.new(0.03, 0, 0.2, 0)
+buttonContainer.Size = UDim2.new(0.15, 0, 0.75, 0)
+buttonContainer.BackgroundTransparency = 1
+
+
+local buttonLayout = Instance.new("UIListLayout")
+buttonLayout.Parent = buttonContainer
+buttonLayout.FillDirection = Enum.FillDirection.Vertical
+buttonLayout.Padding = UDim.new(0, 5)
+
+-- Create the Buttons
+for i = 1, 8 do
+    local button = Instance.new("TextButton")
+    button.Name = "Button" .. tostring(i)
+    button.Parent = buttonContainer
+    button.Size = UDim2.new(1, 0, 0.1, 0)
+    button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    button.Text = "Button"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.SourceSans
+    button.TextSize = 16
+    button.MouseButton1Click:Connect(function()
+        print("You clicked on " .. button.Name)
+    end)
+end
+
+---------------------------
+-- DRAGGABLE SCRIPT LOGIC
+---------------------------
+local dragging = false
+local dragInput
+local dragStart
+local startPosition
+
+dragBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPosition = mainFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+dragBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
